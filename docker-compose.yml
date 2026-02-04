@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: handwriting-ocr-api
+    ports:
+      - "8000:8000"
+    environment:
+      # Application settings
+      - APP_NAME=Handwriting OCR Service
+      - APP_VERSION=2.0.0
+      - ENVIRONMENT=development
+      
+      # OpenRouter API configuration
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
+      - OCR_MODEL_ID=qwen/qwen2.5-vl-72b-instruct:free
+      
+      # Rate limiting
+      - RATE_LIMIT_PER_MINUTE=10
+      - RATE_LIMIT_WINDOW=60
+      
+      # File upload limits
+      - MAX_FILE_SIZE_MB=10
+      
+      # Timeouts
+      - OCR_TIMEOUT_SECONDS=30
+      - EXTERNAL_API_TIMEOUT=30
+      
+      # CORS
+      - CORS_ORIGINS=["*"]
+      
+      # Logging
+      - LOG_LEVEL=INFO
+      - LOG_FILE=logs/app.log
+    volumes:
+      # Mount source code for hot reload during development
+      - ./app:/app/app
+    env_file:
+      - .env
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    networks:
+      - ocr-network
+
+networks:
+  ocr-network:
+    driver: bridge
